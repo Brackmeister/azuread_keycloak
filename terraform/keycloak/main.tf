@@ -45,7 +45,6 @@ resource "keycloak_custom_identity_provider_mapper" "saml_attribute_mapper" {
   identity_provider_alias  = keycloak_saml_identity_provider.azure_ad.id
   identity_provider_mapper = "saml-user-attribute-idp-mapper"
 
-  # extra_config with syncMode is required in Keycloak 10+
   extra_config = {
     syncMode         = "INHERIT"
     "attribute.name" = each.value
@@ -85,14 +84,18 @@ resource "keycloak_generic_role_mapper" "broker_to_frontend_role_mapper" {
 }
 
 resource "keycloak_role" "test_role" {
+  for_each = {
+    "test-role" = "Test role from Azure AD"
+  }
+
   realm_id    = keycloak_realm.realm.id
-  name        = "test-role"
-  description = "Test role from Azure AD"
+  name        = each.key
+  description = each.value
 }
 
 resource "keycloak_custom_identity_provider_mapper" "saml_role_mapper" {
   for_each = {
-    "test-role"     = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+    "test-role" = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
   }
 
   realm                    = keycloak_realm.realm.id
@@ -100,11 +103,10 @@ resource "keycloak_custom_identity_provider_mapper" "saml_role_mapper" {
   identity_provider_alias  = keycloak_saml_identity_provider.azure_ad.id
   identity_provider_mapper = "saml-role-idp-mapper"
 
-  # extra_config with syncMode is required in Keycloak 10+
   extra_config = {
-    syncMode         = "INHERIT"
-    "attribute.name" = each.value
+    syncMode          = "INHERIT"
+    "attribute.name"  = each.value
     "attribute.value" = each.key
-    role = each.key
+    role              = each.key
   }
 }
