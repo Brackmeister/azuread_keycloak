@@ -32,15 +32,36 @@ resource "keycloak_saml_identity_provider" "azure_ad" {
   force_authn                   = true
 }
 
+resource "keycloak_custom_identity_provider_mapper" "saml_attribute_mapper" {
+  for_each = {
+    "email"     = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+    "username"  = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+    "firstName" = "https://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"
+    "lastName"  = "https://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
+  }
+
+  realm                    = keycloak_realm.realm.id
+  name                     = "attribute-${each.key}-mapper"
+  identity_provider_alias  = keycloak_saml_identity_provider.azure_ad.id
+  identity_provider_mapper = "saml-user-attribute-idp-mapper"
+
+  # extra_config with syncMode is required in Keycloak 10+
+  extra_config = {
+    syncMode         = "INHERIT"
+    "attribute.name" = each.value
+    "user.attribute" = each.key
+  }
+}
+
 data "keycloak_openid_client" "broker" {
   realm_id  = keycloak_realm.realm.id
   client_id = "broker"
 }
 
 data "keycloak_role" "broker__read_token" {
-  realm_id    = keycloak_realm.realm.id
-  client_id   = data.keycloak_openid_client.broker.id
-  name        = "read-token"
+  realm_id  = keycloak_realm.realm.id
+  client_id = data.keycloak_openid_client.broker.id
+  name      = "read-token"
 }
 
 resource "keycloak_openid_client" "frontend" {
@@ -61,4 +82,29 @@ resource "keycloak_generic_role_mapper" "broker_to_frontend_role_mapper" {
   realm_id  = keycloak_realm.realm.id
   client_id = keycloak_openid_client.frontend.id
   role_id   = data.keycloak_role.broker__read_token.id
+}
+
+resource "keycloak_role" "test_role" {
+  realm_id    = keycloak_realm.realm.id
+  name        = "test-role"
+  description = "Test role from Azure AD"
+}
+
+resource "keycloak_custom_identity_provider_mapper" "saml_role_mapper" {
+  for_each = {
+    "test-role"     = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+  }
+
+  realm                    = keycloak_realm.realm.id
+  name                     = "role-${each.key}-mapper"
+  identity_provider_alias  = keycloak_saml_identity_provider.azure_ad.id
+  identity_provider_mapper = "saml-role-idp-mapper"
+
+  # extra_config with syncMode is required in Keycloak 10+
+  extra_config = {
+    syncMode         = "INHERIT"
+    "attribute.name" = each.value
+    "attribute.value" = each.key
+    role = each.key
+  }
 }
