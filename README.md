@@ -39,6 +39,14 @@ Then `source .env` before running terraform.
 The important settings of the IDP in keycloak to get the id_token from the original IDP are
 
 ```
+resource "keycloak_saml_identity_provider" "azure_ad" {
+  ...
   store_token                   = true
   add_read_token_role_on_create = true
+}
+resource "keycloak_generic_role_mapper" "broker_to_frontend_role_mapper" {
+  realm_id  = keycloak_realm.realm.id
+  client_id = keycloak_openid_client.frontend.id
+  role_id   = data.keycloak_role.broker__read_token.id
+}
 ```
