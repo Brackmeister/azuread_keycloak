@@ -19,7 +19,7 @@ resource "keycloak_saml_identity_provider" "azure_ad" {
 
   sync_mode                     = "FORCE"
   authn_context_comparison_type = "exact"
-  name_id_policy_format         = "Persistent"
+  name_id_policy_format         = "Email"
 
   hide_on_login_page            = false
   store_token                   = true
@@ -36,8 +36,8 @@ resource "keycloak_custom_identity_provider_mapper" "saml_attribute_mapper" {
   for_each = {
     "email"     = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
     "username"  = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
-    "firstName" = "https://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"
-    "lastName"  = "https://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
+    "firstName" = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname"
+    "lastName"  = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/surname"
   }
 
   realm                    = keycloak_realm.realm.id
